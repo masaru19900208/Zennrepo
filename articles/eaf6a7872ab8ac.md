@@ -1,8 +1,8 @@
 ---
-title: "FastAPIについてまとめてみた"
+title: "Python FastAPIで脱初心者！「とりあえず動く」を卒業するバックエンド構築"
 emoji: "⚡"
 type: "tech" # tech: 技術記事 / idea: アイデア
-topics: ["python", "fastapi", "backend"]
+topics: ["python", "fastapi", "backend", "aws", "docker"]
 published: false
 ---
 
@@ -11,17 +11,19 @@ published: false
 
 こんにちは。今回は FastAPI を用いた、大規模開発を見据えた設計思想の学習記録です。
 私は普段、非IT系の事業会社（いわゆるJTC）にて「部署内DX」の推進役を担っており、現場の手元業務を即座に改善するためのPoCやツール活用がメインに行っております。
-現状はサーバーレス等の軽量な構成が中心ですが、将来的にエンタープライズ水準のプロジェクトでも通用するアーキテクチャ設計や実装力を養いたいと考え、休暇を活用してインプットを行いました。本記事はその学習の記録です。
+現状はサーバーレス等の軽量な構成が中心ですが、スピード重視で作るため「とりあえず動く」状態のものが多くあり、将来的にエンタープライズ水準のプロジェクトでも通用するアーキテクチャ設計や実装力を養いたいと考え、休暇を活用してインプットを行いました。本記事はその学習の記録です。
 
 ## 2.対象読者
 
-- FastAPIの導入を検討している
-- FastAPIの初学者
-- Pythonについての理解がすでにある
+- FastAPIのチュートリアルを終えて次のステップに進みたい方
+- 「とりあえず動く」コードから、保守性の高い設計へステップアップしたい方
+- Pythonの基礎理解はあるが、Webフレームワークの設計思想を学びたい方
 
 ## 3.記事を読むメリット
 
-- 公式ドキュメントからの抜粋で概要を日本語でサラッと読める
+- 公式ドキュメントをベースにした、実務で使える設計思想（ディレクトリ構成、エラー処理）が学べる
+- AWS ECSへのデプロイまでの一連の流れを把握できる
+- 「なぜその設計にするのか」という現場目線の理由がわかる
 
 ## 4.概要
 
@@ -144,6 +146,10 @@ async def root():
 ```shell
 fastapi dev main.py
 ```
+:::message
+fastapi dev はホットリロード（コード変更の即時反映）が有効な開発用モードです。
+本番環境で運用する際は、パフォーマンスと安定性を確保するため fastapi run コマンドを使用することが推奨されています。 
+::: 
 
 以下のURLでサーバーレスポンスやドキュメントが生成されていることを確認できる。
 
@@ -185,6 +191,15 @@ async def update_item(item_id: int, item: Item):
 async def delete_item(item_id: int):
     return {"item_id": item_id}
 ```
+
+:::message
+**脱初心者ポイント：async def と def の使い分け**
+FastAPI では `async def` と `def` のどちらも定義できますが、明確な使い分けがあります。
+- **async def**: DBアクセスや外部API通信など、**I/O待ち（待機時間）が発生する処理**に使用します。
+- **def**: 計算処理など、**CPUを占有する処理**に使用します。FastAPIはこれをスレッドプールで実行し、メインのイベントループをブロックしないよう制御します。
+「とりあえず全部 `async`」にすると、CPUバウンドな処理でサーバー全体の応答が遅れる原因になるため注意が必要です。
+:::
+
 ## 7.パス指定
 
 参照：[Path Parameters](https://fastapi.tiangolo.com/tutorial/path-params/)
@@ -637,6 +652,26 @@ async def read_items(q: Annotated[str | None, Query(
 )] = None)
 ```
 
+#### 9.3.2.モデル設定による堅牢化 (ConfigDict)
+「脱初心者」を目指すなら、Pydanticの ConfigDict を活用してモデルの挙動を厳格に制御しましょう。 
+デフォルトでは、定義されていないフィールドがリクエストに含まれていても無視されるだけですが、extra='forbid' を設定することでエラーとして検知できます。
+これにより、クライアント側のタイポや不正なデータの混入を未然に防ぐことができます。
+```python
+from pydantic import BaseModel, ConfigDict
+
+class StrictItem(BaseModel):
+    model_config = ConfigDict(
+            extra='forbid',
+            str_strip_whitespace=True,
+        )
+    name: str
+    price: float
+
+@app.post("/strict_items/")
+async def create_strict_item(item: StrictItem):
+    return item
+```
+
 ### 9.4.レスポンスバリデーション
 
 参照：[Response Model - Return Type](https://fastapi.tiangolo.com/tutorial/response-model/)
@@ -1036,6 +1071,28 @@ app.add_middleware(Middleware_C) #一番外
 Request -> Middleware_C -> Middleware_B -> Middleware_A -> FastAPI App -> Middleware_A -> Middleware_B -> Middleware_C -> Response
 ```
 
+### 11.3. 【必須】CORSミドルウェア
+
+「とりあえず動く」環境で、フロントエンドとバックエンドを連携させる際、躓きがちなのがCORS（Cross-Origin Resource Sharing） です。
+本番環境を見据えるなら、初期段階から設定しておくのが定石です。
+
+```python
+from fastapi.middleware.cors
+import CORSMiddleware
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "https://myapp.com"], # 許可するオリジン
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+
 ## 12.ディレクトリ構造
 
 参照：[Bigger Applications - Multiple Files](https://fastapi.tiangolo.com/tutorial/bigger-applications/)
@@ -1327,14 +1384,33 @@ jobs:
   - Python標準の async/await をネイティブサポートしており、高負荷なI/O処理（DBアクセスや外部API通信）が重なってもブロッキングしにくい構造になっている。
   - 今回はこれらを実感できるほどの実装をしていないので体感では不明
 
-[Django](https://docs.djangoproject.com/ja/6.0/)は大規模向けだと聞いたことがあるけどどうなのか
+### Django vs FastAPI：脱初心者のための選定基準
 
-Django（バッテリー同梱型）:
-- [ORM](https://qiita.com/devmatsuko/items/be3bd5a7ddeb5c5e4036)、認証、管理画面などが標準搭載されており、「レールに乗れば」非常に高速に堅牢なシステムが作れる。
-- チーム全体のコードスタイルを統一しやすい一方、レールから外れた柔軟な構成や、マイクロサービス化しようとすると重厚長大になりがち。
+「大規模向けはDjango、小規模はFastAPI」と単純に語られることもありますが、現代のバックエンド開発では**「プロジェクトの性質」**で選ぶのが正解です。
 
-FastAPI（マイクロフレームワーク型）:
-- 必要最小限の機能しか持たないが、SQLAlchemy（ORM）やAlembic（マイグレーション）など、その時々のベストなライブラリを自由に組み合わせられる。
-- 型安全性が高いため、コードベースが巨大化してもリファクタリング（改修）が容易であり、実は現代的な大規模開発（マイクロサービス、長期運用）においてこそ真価を発揮するポテンシャルがある
+#### Djangoを選ぶべきケース（バッテリー同梱型の強み）
+- **管理画面が必須**: Django Adminは非常に強力で、社内用管理ツールなどを爆速で作るなら右に出るものはありません。
+- **「あるある」機能が多い**: ユーザー認証、権限管理、RDB操作（ORM）、セキュリティ対策などが標準装備されており、これらを独自実装する工数をかけたくない場合。
+- **チームの規約統一**: ディレクトリ構成や書き方が強制されるため、メンバーのスキルレベルにばらつきがあっても品質を保ちやすい。
 
-とても長くなってしまいました。
+#### FastAPIを選ぶべきケース（マイクロフレームワーク型の強み）
+- **SPA/モバイルアプリのバックエンド**: フロントエンドが別にある場合、Djangoのテンプレート機能は不要になります。APIサーバーとしての軽快さとドキュメント生成機能が活きます。
+- **非同期処理・高パフォーマンス**: チャットアプリやリアルタイム通知、機械学習モデルの推論APIなど、高負荷なI/Oや低レイテンシが求められる場合。
+- **技術選定の自由度**: 「ORMはSQLAlchemy 2.0を使いたい」「NoSQLを使いたい」など、要件に合わせてベストなライブラリを組み合わせたい場合。マイクロサービス化を見据えるならこちらが有利です。
+
+結論として、**「標準機能で素早くCRUDアプリを作りたいならDjango」、「パフォーマンスや柔軟なアーキテクチャを重視するならFastAPI」**という使い分けが、脱初心者としての第一歩と言えるでしょう。
+
+## 15.おわりに：脱初心者への第一歩とこれから
+
+今回の学習を通じて、「とりあえず動くコード」と「実務で使えるコード」の間には、**エラーハンドリングへの配慮**や**ディレクトリ構成による責務の分離**といった、明確な設計思想の違いがあることを痛感しました。
+FastAPIは自由度が高い分、こうした設計力が試されるフレームワークですが、型安全性やドキュメント自動生成といった強力な機能が、正しい設計への道標になってくれるとも感じました。
+
+### 今後の展望
+
+「脱初心者」を完全に果たすために、次は以下の技術課題に挑戦していきたいと考えています。
+
+- **DB連携の深掘り**: SQLAlchemy 2.0 や Tortoise ORM を用いた、非同期DBアクセスの実践。
+- **テストコードの記述**: Pytest を用いた単体テスト・結合テストを行い、リファクタリングに強いコードベースを作る。
+- **認証・認可**: JWTを用いたセキュアな認証基盤の構築。
+
+本記事が、私と同じように「ツール作成から一歩進んだバックエンド開発」を目指す方の参考になれば幸いです。
