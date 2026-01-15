@@ -9,7 +9,8 @@ published: false
 ## 1.はじめに
 
 こんにちは。前回の「設計編」に引き続き、リレーショナルデータベース（RDB）の学習記録です。
-設計編では「正規化」や「データベースの選定基準」といった概念を整理しました。本記事では、実際に手を動かして AWS Aurora（PostgreSQL互換）上にデータベースを構築し、SQLを実行してみます。
+本記事では、実際に手を動かして AWS Aurora（PostgreSQL互換）上にデータベースを構築し、SQLを実行します。
+https://zenn.dev/masaru0208/articles/d7ecc82124eda7
 
 「頭で理解した設計思想が、実際のクエリでどう動くのか？」
 この疑問を解消し、RDBを"武器"として扱えるようになることがゴールです。
@@ -33,7 +34,7 @@ published: false
 ### 4.1.使用ツール・サービス
 
 | 項目 | 使用するもの | 用途 |
-|---|---|---|
+| --- | --- | --- |
 | データベース | Amazon Aurora (PostgreSQL互換) | クラウド上のRDB |
 | クライアントツール | DBeaver Community Edition | DBへの接続・SQL実行 |
 | OS | Windows 11 | 開発マシン |
@@ -42,35 +43,35 @@ published: false
 
 https://dbeaver.io/
 
-DBeaverは、無料で利用できるデータベース管理ツール（GUIクライアント）です。
-MySQL、PostgreSQL、Oracle、SQL Serverなど、ほとんどの主要なデータベースに対応しています。
+- DBeaverは、無料で利用できるデータベース管理ツール（GUIクライアント）です
+- MySQL、PostgreSQL、Oracle、SQL Serverなど、ほとんどの主要なデータベースに対応
+- ER図（テーブル間のリレーション図）を自動生成できます
 
-**なぜDBeaverを選ぶのか？**
-- 無料かつオープンソース
-- 直感的なGUIでSQLの実行結果を確認しやすい
-- ER図（テーブル間のリレーション図）を自動生成できる
-- 複数のデータベースを同時に管理できる
+#### 類似ツール
 
-コマンドラインでの操作（`psql`コマンド等）も学習には有効ですが、初学者にとってはGUIツールで「見える化」しながら進める方が理解が深まります。
+無償で全機能利用可能という点でDBeaverを選定したが、以下のような類似ツールもあります。
 
-### 4.3.DBeaverのインストール
+- TablePlus: https://tableplus.com/
+- Beekeeper Studio: https://www.beekeeperstudio.io/ja/
+- HeidiSQL: https://www.heidisql.com/
+- DbGate: https://www.dbgate.io/ja/
+- DataGrip: https://www.jetbrains.com/ja-jp/datagrip/
 
-1. [DBeaver公式サイト](https://dbeaver.io/download/)にアクセス
-2. 「Windows (installer)」をダウンロード
-3. ダウンロードしたインストーラーを実行し、画面の指示に従ってインストール
+## 5.DBeaverを使ったローカル環境での開発方法
 
-:::message
-インストール時に「JRE（Java実行環境）を含める」オプションがあれば、チェックを入れておくと別途Javaをインストールする手間が省けます。
-:::
+### 5.1.Mockデータ構築方法
 
-## 5.AWS Aurora (PostgreSQL互換) の構築
+- DBeaver起動時、もしくはヘルプ から `Create sample database` をクリック
+- 
+
+## .AWS Aurora (PostgreSQL互換) の構築
 
 ### 5.1.なぜAuroraを選ぶのか
 
 設計編でも触れましたが、AWS環境でRDBを使うなら **Amazon Aurora** が推奨されます。
 
 | 観点 | Aurora のメリット |
-|---|---|
+| --- | --- |
 | パフォーマンス | MySQL/PostgreSQLの数倍の処理速度 |
 | 可用性 | 自動フェイルオーバー、複数AZへのレプリケーション |
 | 運用負荷 | 自動バックアップ、パッチ適用はAWSが管理 |
