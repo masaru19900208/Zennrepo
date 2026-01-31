@@ -1,9 +1,9 @@
 ---
-title: "RDBで脱初心者！「とりあえず動く」を卒業するデータベース構築-実装編"
+title: "RDBで脱初心者！「とりあえず動く」を卒業するデータベース構築-実践編"
 emoji: "😎"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["backend", "rdb", "db", "database", "sql"]
-published: false
+published: true
 ---
 
 ## 1.はじめに
@@ -17,7 +17,7 @@ https://zenn.dev/masaru0208/articles/d7ecc82124eda7
 
 ## 2.対象読者
 
-- リレーショナルデータベースを実際に触ってみたい方
+- リレーショナルデータベースを実際に触ったことが無い方
 - 「とりあえず動く」データベースから、保守性の高い設計へステップアップしたい方
 - AWS上でのRDB構築に興味がある方
 
@@ -25,7 +25,7 @@ https://zenn.dev/masaru0208/articles/d7ecc82124eda7
 
 - AWSマネジメントコンソールを用いたAurora構築の流れを把握できる
 - DBeaverを使った接続方法と基本操作を習得できる
-- SQLの基本（DDL/DML）を、前回学んだ正規化されたテーブル構造で実践できる
+- SQLの基本を、前回学んだ正規化されたテーブル構造で実践できる
 
 ## 4.開発環境構築
 
@@ -36,7 +36,7 @@ https://zenn.dev/masaru0208/articles/d7ecc82124eda7
 | 項目 | 使用するもの | 用途 |
 | --- | --- | --- |
 | データベース | Amazon Aurora (PostgreSQL互換) | クラウド上のRDB |
-| クライアントツール | DBeaver Community Edition | DBへの接続・SQL実行 |
+| クライアントツール | DBeaver 25.3.2 | DBへの接続・SQL実行 |
 | OS | Windows 11 | 開発マシン |
 
 ### 4.2.DBeaverとは
@@ -49,7 +49,7 @@ https://dbeaver.io/
 
 #### 類似ツール
 
-無償で全機能利用可能という点でDBeaverを選定したが、以下のような類似ツールもあります。
+無償で全機能利用可能という点でDBeaverを選定しましたが、他にも以下のような類似ツールもあります。
 
 - TablePlus: https://tableplus.com/
 - Beekeeper Studio: https://www.beekeeperstudio.io/ja/
@@ -63,12 +63,7 @@ https://dbeaver.io/
 
 設計編でも触れましたが、AWS環境でRDBを使うなら **Amazon Aurora** が推奨されます。
 
-| 観点 | Aurora のメリット |
-| --- | --- |
-| パフォーマンス | MySQL/PostgreSQLの数倍の処理速度 |
-| 可用性 | 自動フェイルオーバー、複数AZへのレプリケーション |
-| 運用負荷 | 自動バックアップ、パッチ適用はAWSが管理 |
-| スケーラビリティ | Aurora Serverless v2で負荷に応じた自動スケーリング |
+https://zenn.dev/masaru0208/articles/d7ecc82124eda7#amazon-aurora-%E3%81%AE%E6%8E%A8%E5%A5%A8
 
 今回は学習目的のため、コストを抑えた構成で構築します。
 
@@ -81,7 +76,7 @@ Auroraを構築する前に、ネットワーク周りの設定を確認しま�
 1. AWSマネジメントコンソールで「VPC」を検索し、VPCダッシュボードを開く
 2. 左メニューから「セキュリティグループ」を選択
 3. 「セキュリティグループを作成」をクリック
-4. 以下を設定：
+4. 以下を設定
 
 | 項目 | 設定値 |
 |---|---|
@@ -99,22 +94,22 @@ Auroraを構築する前に、ネットワーク周りの設定を確認しま�
 
 1. AWSマネジメントコンソールで「RDS」を検索し、RDSダッシュボードを開く
 2. 「データベースの作成」をクリック
-3. 以下の設定で作成：
+3. 以下を設定
 
-#### 5.3.1.エンジンの選択
+エンジンの選択
 
 | 項目 | 設定値 |
 |---|---|
 | エンジンのタイプ | Aurora (PostgreSQL Compatible) |
 | エンジンバージョン | 最新の安定版（例：Aurora PostgreSQL メジャーバージョンのデフォルト 17） |
 
-#### 5.3.2.テンプレート
+テンプレート
 
 | 項目 | 設定値 |
 |---|---|
 | テンプレート | 開発/テスト（コスト削減のため） |
 
-#### 5.3.3.設定
+設定
 
 | 項目 | 設定値 |
 |---|---|
@@ -122,7 +117,7 @@ Auroraを構築する前に、ネットワーク周りの設定を確認しま�
 | ユーザー名 | `postgres`（デフォルト） |
 | 認証情報管理 | AWS Secrets Manager |
 
-#### 5.3.4.接続
+接続
 
 | 項目 | 設定値 |
 |---|---|
@@ -131,13 +126,12 @@ Auroraを構築する前に、ネットワーク周りの設定を確認しま�
 | パブリックアクセス | あり（学習用。本番環境では「いいえ」推奨） |
 | VPCセキュリティグループ | 先ほど作成した`aurora-postgres-sg` |
 
-1. 「データベースの作成」をクリック
-
-作成完了まで数分かかります。ステータスが「利用可能」になるまで待ちましょう。
+4. 「データベースの作成」をクリック
+5. ステータスが「利用可能」になるまで待つ
 
 ### 5.4.エンドポイントの確認
 
-Auroraクラスターが作成されたら、接続に必要な情報を確認します。
+Auroraクラスターが作成されたら、接続に必要な情報を確認します
 
 1. RDSダッシュボードで作成したクラスターを選択
 2. 「接続とセキュリティ」タブを開く
@@ -152,6 +146,9 @@ Auroraクラスターが作成されたら、接続に必要な情報を確認�
 1. DBeaverを起動
 2. 左上の「新しい接続」アイコン（プラグマーク）をクリック
 3. 「PostgreSQL」を選択し「次へ」をクリック
+
+![dbeavercreatenewconnection](/images/rdb_practical/dbeaver_create_new_connection.png)
+
 4. 以下を参照し接続情報を入力：
 
 接続とセキュリティタブにて確認
@@ -166,16 +163,17 @@ Auroraクラスターが作成されたら、接続に必要な情報を確認�
 | Username | postgres（作成時に設定したマスターユーザー名） |
 | Password | RDSダッシュボードから"シークレットマネージャー"と記載されたボタンをクリックし取得 |
 
-1. 「テスト接続」をクリックし、接続が成功することを確認
-2. 「完了」をクリック
+![dbeaversettingauroraconfig](/images/rdb_practical/dbeaver_setting_aurora_config.png)
 
-### 6.2.接続できない場合のトラブルシューティング
+5. 「テスト接続」をクリックし、接続が成功することを確認してOKをクリック
 
-| 症状 | 確認ポイント |
-|---|---|
-| タイムアウトする | セキュリティグループのインバウンドIP、VPCのルートテーブル等が正しく設定されているか |
+![cinoleteconnectaurora](/images/rdb_practical/complete_connect_aurora.png)
 
-ここでちょっとはまりました
+
+### 6.2.タイムアウトする場合
+
+セキュリティグループのインバウンドIP、VPCのルートテーブルが正しく設定されているか再度確認しましょう（[セキュリティグループ設定](#52vpcとセキュリティグループの準備)）
+
 
 ## 7.SQL実践：データベース・テーブルの作成
 
@@ -184,28 +182,28 @@ Auroraクラスターが作成されたら、接続に必要な情報を確認�
 ### 7.1.テーブルの作成
 
 - テーブル構造は簡単な受発注システムを想定したものとしています。
-- ここではGUIベースに作成していきたいと思います
+- 今回はGUIベースに作成していきます
 
 ```mermaid
 erDiagram
   users{
-    smallint user_id PK "ユーザーID"
+    varchar user_id PK "ユーザーID"
     varchar user_name "ユーザー名"
     varchar user_email UK "メールアドレス"
   }
   products{
-    smallint product_id PK "商品ID"
+    varchar product_id PK "商品ID"
     varchar product_name "商品名"
     integer unit_price "単価"
   }
   orders{
     smallint order_id PK "注文ID"
     date order_date "注文日"
-    smallint user_id FK "注文したユーザーID"
+    varchar user_id FK "注文したユーザーID"
   }
   order_details{
     smallint order_id PK "注文ID"
-    smallint product_id PK "商品ID"
+    varchar product_id PK "商品ID"
     smallint quantity "数量"
   }
 
@@ -214,18 +212,26 @@ erDiagram
   products ||--o{ order_details : "is_in"
 ```
 
+https://zenn.dev/masaru0208/articles/d7ecc82124eda7#7.4.%E7%AC%AC3%E6%AD%A3%E8%A6%8F%E5%BD%A2-(3nf)-%3A-%E3%82%AD%E3%83%BC%E4%BB%A5%E5%A4%96%E3%81%AB%E4%BE%9D%E5%AD%98%E3%81%97%E3%81%A6%E3%81%84%E3%82%8B%E3%82%82%E3%81%AE%E3%82%92%E5%88%A5%E3%83%86%E3%83%BC%E3%83%96%E3%83%AB%E3%81%B8
+
 #### 7.1.1.usersテーブル
 
 - ユーザーテーブル`users`を作成します
-- postgres > データベース > postgres > スキーマ > public > テーブル > 右クリック > 新しく作る表をクリック
+- postgres > データベース > postgres > スキーマ > public > テーブル > 右クリック > `新しく作る表`をクリック
 
 ![databasetable](/images/rdb_practical/database_table.png)
 
-- テーブル名を`users`に設定し、列セクションで右クリックし"新しく作る カラム"をクリックし、`user_id`, `user_name`, `user_email`を追加します。
-  - `user_id`では身元をBy Defaultに、keyを主キーに設定
-  - `user_email`ではkeyをユニークキーに設定
+- テーブル名を`users`に設定し、列セクションで右クリックし`新しく作る カラム`をクリックし、以下の項目を追加していきます
 
-`Ctrl+S`で保存することで、最終的に以下のようなSQLを使用しテーブル作成が実行されます
+| colmun name | データタイプ | ヌルではない | keys |
+|---|---|---|---|
+| `user_id` | varchar | True | 主key |
+| `user_name` | varchar | True | - |
+| `user_email` | varchar | True | ユニークキー |
+
+※ KeysのNameとは、Keys自体（どのColumnにどのような役割を持たせたか）を識別するための名前なので、自動入力内容でも識別できればOK。後から変更も可能。
+
+`Ctrl+S`で保存することで、以下のようなSQLを使用しテーブル作成が実行されます
 
 ```sql
 CREATE TABLE public.users (
@@ -247,17 +253,26 @@ https://dbeaver.com/docs/dbeaver/25.3/Creating-columns/#create
 | -------------------------------- | ----------------------------------------------------------------------------------------- |
 | 身元 | Identityの日本語訳。いわゆるサロゲートキーのようなデータ追加時に自動的にインクリメントした番号を割り振る機能
 | Collection                       | データソートする際の基準を示すもの。仮に日本語基準でソートをする予定があればここを`ja_JP` |
-| Storage                          | データの圧縮方式らしいが公式ドキュメントではこの項目を確認できなかった。基本は空でよい。  |
+| Storage                          | データの圧縮方式らしいですが、この項目について記載のある公式ドキュメントを確認できませんでした。基本は空でよい。  |
 | key | user_idやemail等、一意であることが重要な場合はチェックを入れます。生成されるNameは列名とは異なり制御ロジックの中で使用される名称なので自動生成されるものを利用でよさそうです                                                                                          |
 :::
 
 
 #### 7.1.2.productsテーブル
 
-- 商品テーブル`products`を作成します。
-- このテーブルでは`unit_price`項目に制約を追加します。
-- セクションを制約に切り替え > 右クリック > 新しく作る制約をクリック
-- タイプを`CHECK`に変更し以下のように入力します
+- 商品テーブル`products`を作成します
+- 以下の項目を作成します
+
+| colmun name | データタイプ | ヌルではない | keys |
+|---|---|---|---|
+| `product_id` | varchar | True | 主key |
+| `product_name` | varchar | True | - |
+| `unit_price` | integer | True | - |
+
+
+- 追加で`unit_price`項目に`制約`を追加します
+  - サイドメニューから、セクションを`制約`に切り替え > 右クリック > 新しく作る制約をクリック
+  - タイプを`CHECK`に変更し以下のように入力します
 
 ![createcolumnconstraint](/images/rdb_practical/create_column_constraint.png)
 
@@ -275,14 +290,25 @@ CREATE TABLE public.products (
 
 #### 7.1.3.ordersテーブル
 
-- 注文テーブル`orders`を作成します。
-- このテーブルでは`user_id`項目に外部キー設定を追加します
-- セクションを外部キーに切り替え > 右クリック > 新しく作る外部キーをクリック
-- usersのuser_idとordersのuser_idが紐づくように以下のように設定します。また、ON DELETEとON UPDATEの動作を定義します。
+- 注文テーブル`orders`を作成します
+- 以下の項目を作成します
+
+| colmun name | データタイプ | ヌルではない | keys |
+|---|---|---|---|
+| `order_id` | smallint | True | 主key |
+| `order_date` | date | True | - |
+| `user_id` | varchar | True | - |
+
+- 追加で`user_id`項目に`外部キー`を追加します
+- サイドメニューから、セクションを`外部キー`に切り替え > 右クリック > 新しく作る外部キーをクリック
+- 参照表で`users`を選択
+- ユニークキーで`users_pk`を選択（usersテーブルの主キー設定時の`Name`）
+- Custom Nameは自動で入ります（画像は変更しちゃってますが基本変更しなくて大丈夫です
+- 削除時（ON DELETE）と更新時（ON UPDATE）の動作を定義します
 
 ![createforeignkey](/images/rdb_practical/create_foreign_key.png)
 
-:::details 外部キーの制約について
+:::details 外部キーの制約（RESTRIC、CASCADE等）について
 
 https://dbeaver.com/docs/dbeaver/25.3/Utilizing-Foreign-Keys/#create
 
@@ -302,7 +328,7 @@ https://dbeaver.com/docs/dbeaver/25.3/Utilizing-Foreign-Keys/#create
 CREATE TABLE public.orders (
 	order_id smallint GENERATED BY DEFAULT AS IDENTITY NOT NULL,
 	order_date date NOT NULL,
-	user_id smallint NOT NULL,
+	user_id varchar NOT NULL,
 	CONSTRAINT orders_pk PRIMARY KEY (order_id),
 	CONSTRAINT orders_users_fk FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -310,16 +336,24 @@ CREATE TABLE public.orders (
 
 #### 7.1.4.order_detailsテーブル
 
-- 注文明細テーブル（交差テーブル）`order_details`テーブルを作成します。
-- `order_id`と`product_id`をプライマリーキーかつ外部キーに設定します
-- `quantity`には 0より大きい 制約を設けます
+- 注文明細テーブル（交差テーブル）`order_details`テーブルを作成します
+- 以下の項目を作成します
+
+| colmun name | データタイプ | ヌルではない | keys |
+|---|---|---|---|
+| `order_id` | smallint | True | 主key |
+| `product_id` | varchar | True | 主key |
+| `quantiry` | smallint | True | - |
+
+- 追加で`order_id`と`product_id`項目に`外部キー`を追加します [参照](#713ordersテーブル)
+- 追加で`quantity`項目に`制約`(0以上の値のみ)を追加します [参照](#712productsテーブル)
 
 最終的に以下のSQLが実行されます
 
 ```sql
 CREATE TABLE public.order_details (
 	order_id smallint NOT NULL,
-	product_id smallint NOT NULL,
+	product_id varchar NOT NULL,
 	quantity smallint NOT NULL,
 	CONSTRAINT order_details_pk PRIMARY KEY (order_id,product_id),
 	CONSTRAINT order_details_check CHECK (quantity > 0),
@@ -327,7 +361,6 @@ CREATE TABLE public.order_details (
 	CONSTRAINT product_id FOREIGN KEY (product_id) REFERENCES public.products(product_id) ON DELETE RESTRICT ON UPDATE CASCADE
 );
 ```
-
 
 ### 7.2.ER図の確認
 
@@ -340,25 +373,13 @@ DBeaverでは、作成したテーブルのER図（Entity-Relationship図）を�
 
 ![viewdiagramdetails](/images/rdb_practical/view_diagram_details.png)
 
-
-
-
-
-
-
-
-
-
-
-
-
 ## 8.SQL実践：データの投入
 
 ### 8.1.データの挿入（DML）
 
 - テーブルにサンプルデータを投入します。
-- publicの位置で右クリック > SQLエディタ > SQLエディタ をクリック
-- 以下のスクリプトを入力したのち SQL文を実行する をクリック
+- public > 右クリック > SQLエディタ > SQLエディタ をクリック
+- 以下のスクリプトを入力したのち SQL文を実行(`Ctrl + Enter`)する をクリック
 
 ```sql
 -- ユーザーデータの挿入
@@ -366,36 +387,41 @@ INSERT INTO users (user_id, user_name, user_email) VALUES
     ('u_001', '田中太郎', 'tanaka@example.com'),
     ('u_002', '佐藤花子', 'sato@example.com'),
     ('u_003', '鈴木一郎', 'suzuki@example.com');
-
+```
+```sql
 -- 商品データの挿入
 INSERT INTO products (product_id, product_name, unit_price) VALUES
     ('A', 'りんご', 100),
     ('B', 'みかん', 50),
     ('C', 'バナナ', 200),
     ('D', 'ぶどう', 300);
-
+```
+```sql
 -- 注文データの挿入
 INSERT INTO orders (order_id, order_date, user_id) VALUES
-    ('001', '2025-01-01', 'u_001'),
-    ('002', '2025-01-02', 'u_002'),
-    ('003', '2025-01-03', 'u_001');
-
+    ( 1, '2025-01-01', 'u_001'),
+    ( 2, '2025-01-02', 'u_002'),
+    ( 3, '2025-01-03', 'u_001');
+```
+```sql
 -- 注文明細データの挿入
 INSERT INTO order_details (order_id, product_id, quantity) VALUES
-    ('001', 'A', 2),
-    ('001', 'B', 5),
-    ('002', 'C', 1),
-    ('003', 'A', 3),
-    ('003', 'D', 2);
+    ( 1, 'A', 2),
+    ( 1, 'B', 5),
+    ( 2, 'C', 1),
+    ( 3, 'A', 3),
+    ( 3, 'D', 2);
 ```
 
 実行を終えると以下のようにデータが入っているのが確認できます
 ![inserteddata](/images/rdb_practical/inserted_data_in_table.png)
 
+- もし確認ができなかった場合は、アプリメニューのファイル > 更新をクリック
+- もしくは、各テーブル名を右クリック > 更新をクリック
 
 ### 8.2.データの確認
 
-投入したデータを確認してみましょう。
+投入したデータを確認してみましょう
 
 ```sql
 -- 各テーブルの全データを取得
@@ -431,8 +457,9 @@ WHERE句結果
 
 正規化されたテーブルの真価は、JOINによる結合で発揮されます。
 
+注文一覧に「ユーザー名」を付与して表示
+
 ```sql
--- 注文一覧に「ユーザー名」を付与して表示
 SELECT
     o.order_id,
     o.order_date,
@@ -442,14 +469,17 @@ FROM orders o
 INNER JOIN users u ON o.user_id = u.user_id;
 ```
 
+結果
+
 | order_id | order_date | user_name | user_email |
 |---|---|---|---|
 | 1 | 2025-01-01 | 田中太郎 | tanaka@example.com |
 | 2 | 2025-01-02 | 佐藤花子 | sato@example.com |
 | 3 | 2025-01-03 | 田中太郎 | tanaka@example.com |
 
+注文明細に「商品名」「単価」を付与し、小計を計算
+
 ```sql
--- 注文明細に「商品名」「単価」を付与し、小計を計算
 SELECT
     od.order_id,
     p.product_name,
@@ -460,6 +490,8 @@ FROM order_details od
 INNER JOIN products p ON od.product_id = p.product_id;
 ```
 
+結果
+
 | order_id | product_name | unit_price | quantity | subtotal |
 |---|---|---|---|---|
 | 1 | りんご | 100 | 2 | 200 |
@@ -468,8 +500,9 @@ INNER JOIN products p ON od.product_id = p.product_id;
 | 3 | りんご | 100 | 3 | 300 |
 | 3 | ぶどう | 300 | 2 | 600 |
 
+注文ごとの合計金額を算出
+
 ```sql
--- 注文ごとの合計金額を算出
 SELECT
     o.order_id,
     o.order_date,
@@ -482,6 +515,9 @@ INNER JOIN products p ON od.product_id = p.product_id
 GROUP BY o.order_id, o.order_date, u.user_name
 ORDER BY o.order_id;
 ```
+
+結果
+
 | order_id | order_date | user_name | total_amount |
 |---|---|---|---|
 | 1 | 2025-01-01 | 田中太郎 | 450 |
@@ -499,18 +535,31 @@ ORDER BY o.order_id;
 
 ### 9.4.集計関数
 
+商品ごとの販売数量合計
+
 ```sql
--- 商品ごとの販売数量合計
-SELECT 
+SELECT
     p.product_name,
     SUM(od.quantity) AS total_quantity
 FROM order_details od
 INNER JOIN products p ON od.product_id = p.product_id
 GROUP BY p.product_name
 ORDER BY total_quantity DESC;
+```
 
--- ユーザーごとの注文回数
-SELECT 
+結果
+
+| product_name | total_quantity |
+|---|---|
+| りんご | 5 |
+| みかん | 5 |
+| ぶどう | 2 |
+| バナナ | 1 |
+
+ユーザーごとの注文回数
+
+```sql
+SELECT
     u.user_name,
     COUNT(o.order_id) AS order_count
 FROM users u
@@ -518,45 +567,135 @@ LEFT JOIN orders o ON u.user_id = o.user_id
 GROUP BY u.user_name;
 ```
 
+結果
+
+| user_name | oder_count |
+|---|---|
+| 田中太郎 | 2 |
+| 鈴木一郎 | 0 |
+| 佐藤花子 | 1 |
+
 ## 10.SQL実践：データの更新と削除
 
 ### 10.1.データの更新（UPDATE）
 
 ```sql
 -- 商品の単価を変更
-UPDATE products 
-SET unit_price = 120 
+UPDATE products
+SET unit_price = 120
 WHERE product_id = 'A';
 
 -- 確認
 SELECT * FROM products WHERE product_id = 'A';
 ```
 
+結果
+
+| product_id | product_name | unit_price |
+|---|---|---|
+| A | りんご | 120 |
+
 ### 10.2.データの削除（DELETE）
 
 ```sql
 -- 特定の注文明細を削除
-DELETE FROM order_details 
-WHERE order_id = '003' AND product_id = 'D';
+DELETE FROM order_details
+WHERE order_id = 3 AND product_id = 'D';
 
 -- 確認
-SELECT * FROM order_details WHERE order_id = '003';
+SELECT * FROM order_details WHERE order_id = 3;
 ```
+
+結果
+
+| order_id | product_id | quantity |
+|---|---|---|
+| 3 | A | 3 |
 
 :::message alert
 **削除操作の注意点**
 `WHERE`句を付け忘れると、テーブルの全データが削除されます。本番環境では必ずトランザクション内で実行し、`COMMIT`前に確認することを習慣づけましょう。
 :::
 
-:::details ローカルだけで完結させるなら
+## 11.トランザクションの基礎
 
-## DBeaverを使ったローカル環境での開発方法
+### 11.1.トランザクションとは
 
-### Mockデータ構築
+トランザクションとは、「複数のSQL操作をひとまとめにして、すべて成功するか、すべて失敗するか」を保証する仕組みです。
+設計編で触れた「注文確定と在庫減少の矛盾を防ぐ」というRDBの強みは、このトランザクション機能によって実現されています。
 
-- WSL2, DockerDesktopをインストールしておく
-- BE用プロジェクトフォルダを作成する
-- `docker-compose.yml` を作成し以下を記載
+### 11.2.基本的な使い方
+
+```sql
+-- トランザクション開始
+BEGIN;
+
+-- 注文を追加
+INSERT INTO orders (order_id, order_date, user_id)
+VALUES (4, '2025-01-04', 'u_003');
+
+-- 注文明細を追加
+INSERT INTO order_details (order_id, product_id, quantity)
+VALUES (4, 'B', 10);
+
+-- 問題なければ確定
+COMMIT;
+
+-- 問題があればロールバック（取り消し）
+-- ROLLBACK;
+```
+
+orders
+
+| order_id | order_date | user_id |
+| -------- | ---------- | ------- |
+| 1        | 2025-01-01 | u_001   |
+| 2        | 2025-01-02 | u_002   |
+| 3        | 2025-01-03 | u_001   |
+| 4        | 2025-      | U_003   |
+
+order_details
+
+| order_id | product_id | quantity |
+| -------- | ---------- | -------- |
+| 1        | A          | 2        |
+| 1        | B          | 5        |
+| 2        | C          | 1        |
+| 3        | A          | 3        |
+| 4        | B          | 10       |
+
+order_id: 3, product_id: D の注文は削除済み
+
+### 11.3.ACID特性
+
+トランザクションが保証する4つの特性を **ACID** と呼びます。
+
+| 特性 | 英語 | 意味 |
+|---|---|---|
+| 原子性 | Atomicity | 処理は「全部成功」か「全部失敗」のいずれか |
+| 一貫性 | Consistency | トランザクション前後でデータの整合性が保たれる |
+| 独立性 | Isolation | 同時実行中のトランザクションが互いに干渉しない |
+| 永続性 | Durability | 確定した変更は障害が発生しても失われない |
+
+## 12.クリーンアップ（リソースの削除）
+
+学習が終わったら、不要なAWSリソースを削除してコストを抑えましょう。
+
+:::message alert
+**課金に注意**
+Auroraは起動している間、継続的に課金が発生します。学習を中断する際は、クラスターを **停止** するか **削除** することを忘れずに。
+:::
+
+## 13.ローカル環境のみで試す方法
+
+- AWS環境を構築せず、ローカル環境のみで試したい場合は、以下の手順でMockデータ環境を構築できます。
+- 仕事用以外にAWSアカウントを持っていない場合や、一時的に試したい場合に便利です
+
+### 13.1.Mockデータ構築
+
+- Windows環境では、WSL2, DockerDesktopをインストールしておく
+- BE用プロジェクトディレクトリを作成する 例:`./backend_postgresql_db`
+- ディレクトリに`docker-compose.yml`を作成し以下を記載
 
 ```yml
 version: "3.9"
@@ -580,7 +719,7 @@ volumes:
   pgdata:
 ```
 
-- PowerShellやコマンドプロンプトで`docker compose up -d`コマンドを実行
+- PowerShellやコマンドプロンプトで`docker compose up -d`コマンドを実行（Docker desktopが起動していること）
 
 ![dockercompose](/images/rdb_practical/docker_compose_up.png)
 
@@ -604,101 +743,33 @@ volumes:
 | Password | sample_pass |
 
 - テスト接続をクリック
-- ”ドライバファイルをダウンロードする”が出現した場合はダウンロード
+- `ドライバファイルをダウンロードする`が出現した場合はダウンロードを行う
 
 ![downloaddriver](/images/rdb_practical/download_driver.png)
 
-- 接続テストの完了を確認し、新しい接続のウィンドウで”終了”をクリック
+- 接続テストの完了を確認し、OKをクリック
 
 ![completeconnecttest](/images/rdb_practical/complete_connect_test.png)
 
 ![createddatabase](/images/rdb_practical/created_database.png)
 
-- 作成したデータベース上で右クリックし `SQLエディタ` > `SQLエディタ`をクリック
 
-![opensqleditor](/images/rdb_practical/open_sql_editor.png)
-
-- ヘルプ から `Create sample database` をクリックし、サンプルデータベースを作成
-:::
-## 11.トランザクションの基礎
-
-### 11.1.トランザクションとは
-
-トランザクションとは、「複数のSQL操作をひとまとめにして、すべて成功するか、すべて失敗するか」を保証する仕組みです。
-設計編で触れた「注文確定と在庫減少の矛盾を防ぐ」というRDBの強みは、このトランザクション機能によって実現されています。
-
-### 11.2.基本的な使い方
-
-```sql
--- トランザクション開始
-BEGIN;
-
--- 注文を追加
-INSERT INTO orders (order_id, order_date, user_id) 
-VALUES ('004', '2025-01-04', 'u_003');
-
--- 注文明細を追加
-INSERT INTO order_details (order_id, product_id, quantity) 
-VALUES ('004', 'B', 10);
-
--- 問題なければ確定
-COMMIT;
-
--- 問題があればロールバック（取り消し）
--- ROLLBACK;
-```
-
-### 11.3.ACID特性
-
-トランザクションが保証する4つの特性を **ACID** と呼びます。
-
-| 特性 | 英語 | 意味 |
-|---|---|---|
-| 原子性 | Atomicity | 処理は「全部成功」か「全部失敗」のいずれか |
-| 一貫性 | Consistency | トランザクション前後でデータの整合性が保たれる |
-| 独立性 | Isolation | 同時実行中のトランザクションが互いに干渉しない |
-| 永続性 | Durability | 確定した変更は障害が発生しても失われない |
-
-## 12.クリーンアップ（リソースの削除）
-
-学習が終わったら、不要なAWSリソースを削除してコストを抑えましょう。
-
-### 12.1.Auroraクラスターの削除
-
-1. RDSダッシュボードで作成したクラスターを選択
-2. 「アクション」→「削除」を選択
-3. 最終スナップショットの作成有無を選択（学習用なら不要）
-4. 確認入力を行い削除
-
-### 12.2.セキュリティグループの削除
-
-1. VPCダッシュボードでセキュリティグループを選択
-2. 作成した`aurora-postgres-sg`を削除
-
-:::message alert
-**課金に注意**
-Auroraは起動している間、継続的に課金が発生します。学習を中断する際は、クラスターを **停止** するか **削除** することを忘れずに。
-:::
-
-## 13.おわりに
+## 14.おわりに
 
 本記事では、設計編で学んだ正規化の概念を、実際にAWS Aurora上で動かすところまで実践しました。
 
 **振り返り**
 - DBeaverを使ったGUIベースのDB操作で、学習のハードルを下げられる
-- AWS Auroraの構築は、セキュリティグループの設定がポイント
 - JOINを使うことで、正規化されたテーブル間のデータを柔軟に結合できる
 - トランザクションにより、データの整合性を保証できる
+- 「設計」と「実装」の両輪が揃って初めて、RDBを武器として扱えるようになります
+- 「とりあえず動く」から「意図して動かす」エンジニアを目指して、引き続き学習を進めていきましょう
 
-「設計」と「実装」の両輪が揃って初めて、RDBを武器として扱えるようになります。
-ぜひ本記事のSQLを実際に実行し、自分なりにアレンジしながら理解を深めてください。
-
-「とりあえず動く」から「意図して動かす」エンジニアを目指して、引き続き学習を進めていきましょう。
-
-## 14.参考リンク
+## 15.参考リンク
 
 - [Amazon Aurora ドキュメント](https://docs.aws.amazon.com/ja_jp/AmazonRDS/latest/AuroraUserGuide/CHAP_AuroraOverview.html)
 - [DBeaver 公式サイト](https://dbeaver.io/)
 - [PostgreSQL 公式ドキュメント](https://www.postgresql.org/docs/)
 - [SQL入門 - Progate](https://prog-8.com/courses/sql)
+- [サクッと始めるデータベース構築【SQL / NoSQL / newSQL】](https://zenn.dev/umi_mori/books/331c0c9ef9e5f0/viewer/992632)
 
