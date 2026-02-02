@@ -3,7 +3,7 @@ title: "Python FastAPIで脱初心者！「とりあえず動く」を卒業す�
 emoji: "⚡"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["python", "fastapi", "backend", "aws", "docker"]
-published: false
+published: true
 ---
 
 
