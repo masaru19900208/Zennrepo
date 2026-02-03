@@ -1,5 +1,5 @@
 ---
-title: "RDBで脱初心者！「とりあえず動く」を卒業するデータベース構築-実践編"
+title: "NoSQL育ちがAWS AuroraでSQL実践してみた"
 emoji: "😎"
 type: "tech" # tech: 技術記事 / idea: アイデア
 topics: ["backend", "rdb", "db", "database", "sql"]
@@ -9,7 +9,7 @@ published: true
 ## 1.はじめに
 
 こんにちは。前回の「設計編」に引き続き、リレーショナルデータベース（RDB）の学習記録です。
-本記事では、実際に手を動かして AWS Aurora（PostgreSQL互換）上にデータベースを構築し、SQLを実行します。
+本記事では、実際に手を動かして AWS Aurora（PostgreSQL互換）上にデータベースを構築し、SQLを実行します
 https://zenn.dev/masaru0208/articles/d7ecc82124eda7
 
 「頭で理解した設計思想が、実際のクエリでどう動くのか？」
