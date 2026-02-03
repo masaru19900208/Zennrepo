@@ -57,14 +57,7 @@ https://dbeaver.io/
 - DbGate: https://www.dbgate.io/ja/
 - DataGrip: https://www.jetbrains.com/ja-jp/datagrip/
 
-## 5.DBeaverを使ったローカル環境での開発方法
-
-### 5.1.Mockデータ構築方法
-
-- DBeaver起動時、もしくはヘルプ から `Create sample database` をクリック
-- 
-
-## .AWS Aurora (PostgreSQL互換) の構築
+## 5.AWS Aurora (PostgreSQL互換) の構築
 
 ### 5.1.なぜAuroraを選ぶのか
 
