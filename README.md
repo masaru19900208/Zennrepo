@@ -13,3 +13,9 @@ npx zenn new:article
 ```sh
 npx zenn preview
 ```
+
+## How to Section Numbering
+
+- Add extention the "Markdown all in one" at vscode.
+- "Shift" + "Ctrl" + P
+- Type "markdown all in one: add/update section numbers"
